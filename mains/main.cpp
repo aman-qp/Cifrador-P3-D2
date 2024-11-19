@@ -1,6 +1,7 @@
 #include <iostream>
 #include "alg_cifrado/Caesar.h"
 #include "alg_cifrado/Vigenere.h"
+#include "alg_cifrado/Sustitucion.h"
 
 void testCaesar() {
     Caesar caesar;
@@ -32,8 +33,31 @@ void testVigenere() {
     std::cout << "Mensaje descifrado: " << decrypted << std::endl;
 }
 
+void testSustitucion() {
+    Sustitucion subs;
+
+    // La clave es un nuevo alfabeto completo (26 letras en diferente orden)
+    std::string key = "QWERTYUIOPASDFGHJKLZXCVBNM";
+    std::string message = "HELLO WORLD";
+
+    if (!subs.validateKey(key)) {
+        std::cout << "Clave inválida para sustitución" << std::endl;
+        return;
+    }
+
+    std::string encrypted = subs.encrypt(message, key);
+    std::string decrypted = subs.decrypt(encrypted, key);
+
+    std::cout << "Prueba de Cifrado por Sustitución:" << std::endl;
+    std::cout << "Mensaje original: " << message << std::endl;
+    std::cout << "Clave usada: " << key << std::endl;
+    std::cout << "Mensaje cifrado: " << encrypted << std::endl;
+    std::cout << "Mensaje descifrado: " << decrypted << std::endl;
+}
+
 int main() {
     testCaesar();
     testVigenere();
+    testSustitucion();
     return 0;
 }

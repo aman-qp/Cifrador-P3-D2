@@ -3,6 +3,11 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <stdexcept>
+#include <string>
+
+#include "/home/viviana/Desktop/Cifrador-P3-D2/detec_errores/ErrorDetection.h"
+#include "/home/viviana/Desktop/Cifrador-P3-D2/detec_errores/Security.h"
 
 Client::Client(const char* serverIp, int port) : serverIp(serverIp), port(port) {
     // Crear socket
@@ -54,6 +59,13 @@ bool Client::processOption(int choice) {
         std::cout << "Ingrese la clave: ";
         std::getline(std::cin, key);
 
+        // Validación de la clave
+        if (key.empty()) {
+            std::cout << "Clave no puede estar vacía. Intente nuevamente." << std::endl;
+            return true;
+        }
+
+        // Validación y cifrado
         switch(choice) {
             case 1:
                 if (caesar.validateKey(key)) {
@@ -85,6 +97,13 @@ bool Client::processOption(int choice) {
             default: ;
         }
 
+        // Generar checksum del mensaje cifrado
+        std::string checksum = ErrorDetection::generateChecksum(encryptedMessage);
+
+        // Añadir el checksum al mensaje que se enviará al servidor
+        cipherInfo += ":" + checksum + ":";
+
+        // Enviar el mensaje cifrado al servidor
         send(sock, cipherInfo.c_str(), cipherInfo.length(), 0);
         std::cout << "Mensaje cifrado enviado: " << encryptedMessage << std::endl;
     } else {
@@ -96,26 +115,27 @@ bool Client::processOption(int choice) {
 
 void Client::start() {
     try {
-        connect();
+        connect();  // Intentar la conexión con el servidor
         bool running = true;
 
         while (running) {
-            showMenu();
+            showMenu();  // Mostrar el menú al usuario
             int choice;
-            std::cin >> choice;
-            std::cin.ignore();
+            std::cin >> choice;  // Leer la opción seleccionada
+            std::cin.ignore();  // Limpiar el buffer de entrada
 
+            // Procesar la opción seleccionada
             running = processOption(choice);
         }
 
-        close();
+        close();  // Cerrar la conexión
         std::cout << "Conexión cerrada. ¡Hasta pronto!" << std::endl;
 
     } catch (const std::exception& e) {
-        std::cerr << "Error: " << e.what() << std::endl;
+        std::cerr << "Error: " << e.what() << std::endl;  // Manejo de excepciones
     }
 }
 
 void Client::close() const {
-    ::close(sock);
+    ::close(sock);  // Cerrar el socket
 }

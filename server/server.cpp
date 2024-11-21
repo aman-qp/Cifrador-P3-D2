@@ -9,6 +9,9 @@
 #include <cstring>
 #include <fstream>
 
+#include "/home/viviana/Desktop/Cifrador-P3-D2/detec_errores/ErrorDetection.h"
+#include "/home/viviana/Desktop/Cifrador-P3-D2/detec_errores/Security.h"
+
 Server::Server(int port) : port(port) {
     // Crear socket
     serverSocket = socket(AF_INET, SOCK_STREAM, 0);
@@ -29,7 +32,6 @@ Server::Server(int port) : port(port) {
 }
 
 void Server::start() {
-    // Escuchar conexiones
     if (listen(serverSocket, 3) < 0) {
         throw std::runtime_error("Error en listen");
     }
@@ -57,32 +59,70 @@ void Server::processClientMessages() {
 
         if (bytesRead <= 0) {
             std::cout << "Cliente desconectado" << std::endl;
-            displayHistory();  // Mostrar historial cuando el cliente se desconecta
+            displayHistory();
             close(clientSocket);
             break;
         }
 
         std::string receivedData(buffer);
 
+        // Verificar si el mensaje es el comando EXIT
         if (receivedData == "EXIT:::") {
             std::cout << "Cliente solicitó desconexión" << std::endl;
-            displayHistory();  // Mostrar historial cuando el cliente sale
+            displayHistory();
             close(clientSocket);
             break;
         }
 
+        std::cout << "Datos recibidos del cliente: " << receivedData << std::endl;  // Mensaje de depuración
+
+        // Dividir el mensaje en partes: tipo de cifrado, clave, mensaje cifrado y checksum
         size_t firstColon = receivedData.find(':');
         size_t secondColon = receivedData.find(':', firstColon + 1);
+        size_t thirdColon = receivedData.find(':', secondColon + 1);
+        size_t lastColon = receivedData.find(':', thirdColon + 1);
 
-        if (firstColon != std::string::npos && secondColon != std::string::npos) {
-            std::string cipherType = receivedData.substr(0, firstColon);
-            std::string key = receivedData.substr(firstColon + 1, secondColon - firstColon - 1);
-            std::string encryptedMessage = receivedData.substr(secondColon + 1);
+        if (firstColon != std::string::npos && secondColon != std::string::npos &&
+            thirdColon != std::string::npos && lastColon != std::string::npos) {
+
+            std::string cipherType = receivedData.substr(0, firstColon);  // Tipo de cifrado
+            std::string key = receivedData.substr(firstColon + 1, secondColon - firstColon - 1);  // Clave
+            std::string encryptedMessage = receivedData.substr(secondColon + 1, thirdColon - secondColon - 1);  // Mensaje cifrado
+            std::string checksum = receivedData.substr(thirdColon + 1, lastColon - thirdColon - 1);  // Checksum
 
             std::cout << "\nMensaje cifrado recibido: " << encryptedMessage << std::endl;
             std::cout << "Tipo de cifrado: " << cipherType << std::endl;
             std::cout << "Clave: " << key << std::endl;
+            std::cout << "Checksum recibido: " << checksum << std::endl;
 
+            // Verificación de errores (Checksum)
+            if (!ErrorDetection::verifyChecksum(encryptedMessage, checksum)) {
+                std::cerr << "Error: El checksum no coincide, el mensaje podría estar corrupto." << std::endl;
+                std::string errorMessage = "ERROR: El checksum no coincide.";
+                send(clientSocket, errorMessage.c_str(), errorMessage.length(), 0);
+                continue; // Ignora el mensaje corrupto
+            }
+
+            // Verificación de la clave
+            bool isKeyValid = false;
+            std::cout << "Verificando clave" << std::endl;  // Mensaje de depuración
+            if (cipherType == "CAESAR") {
+                isKeyValid = caesar.validateKey(key);
+            } else if (cipherType == "VIGENERE") {
+                isKeyValid = vigenere.validateKey(key);
+            } else if (cipherType == "SUSTITUCION") {
+                isKeyValid = sustitucion.validateKey(key);
+            }
+
+            // Enviar respuesta al cliente si la clave es incorrecta
+            if (!isKeyValid) {
+                std::cout << "ERROR: Clave incorrecta recibida del cliente." << std::endl;  // Mensaje de error en la terminal del servidor
+                std::string errorMessage = "ERROR: Clave incorrecta.";
+                send(clientSocket, errorMessage.c_str(), errorMessage.length(), 0);
+                continue; // Continuar esperando otro mensaje
+            }
+
+            // Si la clave es correcta, proceder con el descifrado
             std::string decryptedMessage;
             if (cipherType == "CAESAR") {
                 decryptedMessage = caesar.decrypt(encryptedMessage, key);
@@ -92,13 +132,20 @@ void Server::processClientMessages() {
                 decryptedMessage = sustitucion.decrypt(encryptedMessage, key);
             }
 
+            // Seguridad adicional: descifrado con XOR
+            decryptedMessage = Security::secureDecrypt(decryptedMessage, key);
+
             std::cout << "Mensaje descifrado: " << decryptedMessage << std::endl;
 
-            // Agregar al historial
             addToHistory(encryptedMessage, decryptedMessage, cipherType);
+
+            // Enviar el mensaje descifrado de vuelta al cliente
+            std::string response = "Mensaje descifrado: " + decryptedMessage;
+            send(clientSocket, response.c_str(), response.length(), 0);
         }
     }
 }
+
 
 void Server::addToHistory(const std::string& encrypted, const std::string& decrypted,
                          const std::string& cipherType) const {
@@ -126,30 +173,12 @@ void Server::saveToFile(const HistoryRecord& record) const {
     }
 }
 
-std::vector<HistoryRecord> Server::loadFromFile() const {
-    std::vector<HistoryRecord> history;
-    std::ifstream file(historyFile);
-    if (file.is_open()) {
-        std::string line;
-        HistoryRecord currentRecord;
-
-        while (std::getline(file, line)) {
-            if (line.find("Timestamp: ") != std::string::npos) {
-                currentRecord.timestamp = line.substr(11);
-            } else if (line.find("Tipo: ") != std::string::npos) {
-                currentRecord.cipherType = line.substr(6);
-            } else if (line.find("Cifrado: ") != std::string::npos) {
-                currentRecord.encryptedMessage = line.substr(9);
-            } else if (line.find("Descifrado: ") != std::string::npos) {
-                currentRecord.decryptedMessage = line.substr(11);
-            } else if (line.find("=================") != std::string::npos) {
-                history.push_back(currentRecord);
-                currentRecord = HistoryRecord();
-            }
-        }
-        file.close();
-    }
-    return history;
+std::string Server::getCurrentTimestamp() {
+    auto now = std::chrono::system_clock::now();
+    auto time = std::chrono::system_clock::to_time_t(now);
+    std::stringstream ss;
+    ss << std::put_time(std::localtime(&time), "%Y-%m-%d %H:%M:%S");
+    return ss.str();
 }
 
 void Server::displayHistory() const {
@@ -176,16 +205,33 @@ void Server::displayHistory() const {
     }
 }
 
-std::string Server::getCurrentTimestamp() {
-    auto now = std::chrono::system_clock::now();
-    auto time = std::chrono::system_clock::to_time_t(now);
-    std::stringstream ss;
-    ss << std::put_time(std::localtime(&time), "%Y-%m-%d %H:%M:%S");
-    return ss.str();
-}
-
 void Server::clearHistory() const {
     std::ofstream file(historyFile, std::ios::trunc);
     file.close();
-    std::cout << "Historial limpiado." << std::endl;
+    std::cout << "Historial borrado." << std::endl;
 }
+
+std::vector<HistoryRecord> Server::loadFromFile() const {
+    std::vector<HistoryRecord> records;
+    std::ifstream file(historyFile);
+
+    if (file.is_open()) {
+        std::string line;
+        while (std::getline(file, line)) {
+            if (line.find("Timestamp:") != std::string::npos) {
+                HistoryRecord record;
+                record.timestamp = line.substr(line.find(":") + 2);
+                std::getline(file, line);
+                record.cipherType = line.substr(line.find(":") + 2);
+                std::getline(file, line);
+                record.encryptedMessage = line.substr(line.find(":") + 2);
+                std::getline(file, line);
+                record.decryptedMessage = line.substr(line.find(":") + 2);
+                records.push_back(record);
+            }
+        }
+        file.close();
+    }
+    return records;
+}
+

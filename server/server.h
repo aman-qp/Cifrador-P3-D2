@@ -4,9 +4,12 @@
 #include <string>
 #include <vector>
 #include <netinet/in.h>
-#include "/home/amanda/CLionProjects/Cifrador-P3-D2/alg_cifrado/Caesar.h"
-#include "/home/amanda/CLionProjects/Cifrador-P3-D2/alg_cifrado/Vigenere.h"
-#include "/home/amanda/CLionProjects/Cifrador-P3-D2/alg_cifrado/Sustitucion.h"
+#include "/home/viviana/Desktop/Cifrador-P3-D2/alg_cifrado/Caesar.h"
+#include "/home/viviana/Desktop/Cifrador-P3-D2/alg_cifrado/Vigenere.h"
+#include "/home/viviana/Desktop/Cifrador-P3-D2/alg_cifrado/Sustitucion.h"
+
+#include "/home/viviana/Desktop/Cifrador-P3-D2/detec_errores/ErrorDetection.h"
+#include "/home/viviana/Desktop/Cifrador-P3-D2/detec_errores/Security.h"
 
 struct HistoryRecord {
     std::string encryptedMessage;
@@ -40,4 +43,4 @@ private:
     [[nodiscard]] std::vector<HistoryRecord> loadFromFile() const;
 };
 
-#endif
+#endif // SERVER_H

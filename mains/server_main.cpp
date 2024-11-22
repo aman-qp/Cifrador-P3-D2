@@ -1,4 +1,4 @@
-#include "/home/viviana/Desktop/Cifrador-P3-D2/server/server.h"
+#include "/home/mau/Desktop/Cifrador-P3-D2/server/server.h"
 #include <iostream>
 
 int main() {

@@ -2,15 +2,25 @@
 #define CLIENT_H
 
 #include <netinet/in.h>
-#include "/home/viviana/Desktop/Cifrador-P3-D2/alg_cifrado/Caesar.h"
-#include "/home/viviana/Desktop/Cifrador-P3-D2/alg_cifrado/Vigenere.h"
-#include "/home/viviana/Desktop/Cifrador-P3-D2/alg_cifrado/Sustitucion.h"
+#include "/home/mau/Desktop/Cifrador-P3-D2/alg_cifrado/Caesar.h"
+#include "/home/mau/Desktop/Cifrador-P3-D2/alg_cifrado/Vigenere.h"
+#include "/home/mau/Desktop/Cifrador-P3-D2/alg_cifrado/Sustitucion.h"
 
 class Client {
 public:
     // Constructor y metodo principal
     Client(const char* serverIp, int port);
+    int getSocket() const;
     void start();
+    bool initializeConnection() {
+        try {
+            connect();
+            return true;
+        } catch (const std::exception& e) {
+            // Handle connection error
+            return false;
+        }
+    }
 
 private:
     // Atributos de conexión

@@ -1,8 +1,7 @@
 #include <iostream>
-#include "alg_cifrado/Caesar.h"
-#include "alg_cifrado/Vigenere.h"
-#include "alg_cifrado/Sustitucion.h"
-
+#include "/home/mau/Desktop/Cifrador-P3-D2/alg_cifrado/Caesar.h"
+#include "/home/mau/Desktop/Cifrador-P3-D2/alg_cifrado/Vigenere.h"
+#include "/home/mau/Desktop/Cifrador-P3-D2/alg_cifrado/Sustitucion.h"
 void testCaesar() {
     Caesar caesar;
     std::string message = "hola me llamo amanda";

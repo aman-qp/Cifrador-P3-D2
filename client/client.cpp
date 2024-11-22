@@ -6,8 +6,8 @@
 #include <stdexcept>
 #include <string>
 
-#include "/home/viviana/Desktop/Cifrador-P3-D2/detec_errores/ErrorDetection.h"
-#include "/home/viviana/Desktop/Cifrador-P3-D2/detec_errores/Security.h"
+#include "/home/mau/Desktop/Cifrador-P3-D2/detec_errores/ErrorDetection.h"
+#include "/home/mau/Desktop/Cifrador-P3-D2/detec_errores/Security.h"
 
 Client::Client(const char* serverIp, int port) : serverIp(serverIp), port(port) {
     // Crear socket
@@ -113,6 +113,10 @@ bool Client::processOption(int choice) {
     return true;
 }
 
+int Client::getSocket() const {
+    return sock;
+}
+
 void Client::start() {
     try {
         connect();  // Intentar la conexión con el servidor
@@ -135,6 +139,7 @@ void Client::start() {
         std::cerr << "Error: " << e.what() << std::endl;  // Manejo de excepciones
     }
 }
+
 
 void Client::close() const {
     ::close(sock);  // Cerrar el socket

@@ -9,8 +9,8 @@
 #include <cstring>
 #include <fstream>
 
-#include "/home/viviana/Desktop/Cifrador-P3-D2/detec_errores/ErrorDetection.h"
-#include "/home/viviana/Desktop/Cifrador-P3-D2/detec_errores/Security.h"
+#include "/home/mau/Desktop/Cifrador-P3-D2/detec_errores/ErrorDetection.h"
+#include "/home/mau/Desktop/Cifrador-P3-D2/detec_errores/Security.h"
 
 Server::Server(int port) : port(port) {
     // Crear socket

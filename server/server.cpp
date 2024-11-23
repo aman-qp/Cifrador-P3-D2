@@ -8,8 +8,8 @@
 #include <sstream>
 #include <fstream>
 
-#include "/home/amanda/CLionProjects/Cifrador-P3-D2/detec_errores/ErrorDetection.h"
-#include "/home/amanda/CLionProjects/Cifrador-P3-D2/detec_errores/Security.h"
+#include "/home/viviana/Desktop/Cifrador-P3-D2/detec_errores/ErrorDetection.h"
+#include "/home/viviana/Desktop/Cifrador-P3-D2/detec_errores/Security.h"
 
 Server::Server(int port) : port(port) {
     // Crear socket
@@ -111,6 +111,8 @@ void Server::processClientMessages() {
                 isKeyValid = vigenere.validateKey(key);
             } else if (cipherType == "SUSTITUCION") {
                 isKeyValid = sustitucion.validateKey(key);
+            } else if (cipherType == "XOR") {
+                isKeyValid = true;  // XOR no necesita validación adicional de clave
             }
 
             // Enviar respuesta al cliente si la clave es incorrecta
@@ -129,11 +131,13 @@ void Server::processClientMessages() {
                 decryptedMessage = vigenere.decrypt(encryptedMessage, key);
             } else if (cipherType == "SUSTITUCION") {
                 decryptedMessage = sustitucion.decrypt(encryptedMessage, key);
+            } else if (cipherType == "XOR") {
+                // Descifrado con XOR utilizando la clase Security
+                Security security;
+                decryptedMessage = security.secureDecrypt(encryptedMessage, key);
             }
 
-            // Seguridad adicional: descifrado con XOR
-            //decryptedMessage = Security::secureDecrypt(decryptedMessage, key);
-
+            // Mostrar mensaje descifrado
             std::cout << "Mensaje descifrado: " << decryptedMessage << std::endl;
 
             addToHistory(encryptedMessage, decryptedMessage, cipherType);

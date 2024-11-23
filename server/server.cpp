@@ -6,11 +6,10 @@
 #include <chrono>
 #include <iomanip>
 #include <sstream>
-#include <cstring>
 #include <fstream>
 
-#include "/home/mau/Desktop/Cifrador-P3-D2/detec_errores/ErrorDetection.h"
-#include "/home/mau/Desktop/Cifrador-P3-D2/detec_errores/Security.h"
+#include "/home/amanda/CLionProjects/Cifrador-P3-D2/detec_errores/ErrorDetection.h"
+#include "/home/amanda/CLionProjects/Cifrador-P3-D2/detec_errores/Security.h"
 
 Server::Server(int port) : port(port) {
     // Crear socket
@@ -133,7 +132,7 @@ void Server::processClientMessages() {
             }
 
             // Seguridad adicional: descifrado con XOR
-            decryptedMessage = Security::secureDecrypt(decryptedMessage, key);
+            //decryptedMessage = Security::secureDecrypt(decryptedMessage, key);
 
             std::cout << "Mensaje descifrado: " << decryptedMessage << std::endl;
 
@@ -159,18 +158,9 @@ void Server::addToHistory(const std::string& encrypted, const std::string& decry
 }
 
 void Server::saveToFile(const HistoryRecord& record) const {
-    std::ofstream file(historyFile, std::ios::app);  // Modo append
-    if (file.is_open()) {
-        file << "=== Registro ===" << std::endl;
-        file << "Timestamp: " << record.timestamp << std::endl;
-        file << "Tipo: " << record.cipherType << std::endl;
-        file << "Cifrado: " << record.encryptedMessage << std::endl;
-        file << "Descifrado: " << record.decryptedMessage << std::endl;
-        file << "=================" << std::endl;
-        file.close();
-    } else {
-        std::cerr << "Error: No se pudo abrir el archivo de historial" << std::endl;
-    }
+    json historyArray = readJsonFile();
+    historyArray.push_back(record.to_json());
+    writeJsonFile(historyArray);
 }
 
 std::string Server::getCurrentTimestamp() {
@@ -205,33 +195,37 @@ void Server::displayHistory() const {
     }
 }
 
+json Server::readJsonFile() const {
+    std::ifstream file(historyFile);
+    if (!file.is_open()) {
+        return json::array();
+    }
+    try {
+        json data = json::parse(file);
+        return data;
+    } catch (...) {
+        return json::array();
+    }
+}
+
+void Server::writeJsonFile(const json& data) const {
+    std::ofstream file(historyFile);
+    if (file.is_open()) {
+        file << std::setw(4) << data << std::endl;
+    }
+}
+
 void Server::clearHistory() const {
-    std::ofstream file(historyFile, std::ios::trunc);
-    file.close();
-    std::cout << "Historial borrado." << std::endl;
+    writeJsonFile(json::array());
 }
 
 std::vector<HistoryRecord> Server::loadFromFile() const {
     std::vector<HistoryRecord> records;
-    std::ifstream file(historyFile);
+    json historyArray = readJsonFile();
 
-    if (file.is_open()) {
-        std::string line;
-        while (std::getline(file, line)) {
-            if (line.find("Timestamp:") != std::string::npos) {
-                HistoryRecord record;
-                record.timestamp = line.substr(line.find(":") + 2);
-                std::getline(file, line);
-                record.cipherType = line.substr(line.find(":") + 2);
-                std::getline(file, line);
-                record.encryptedMessage = line.substr(line.find(":") + 2);
-                std::getline(file, line);
-                record.decryptedMessage = line.substr(line.find(":") + 2);
-                records.push_back(record);
-            }
-        }
-        file.close();
+    for (const auto& recordJson : historyArray) {
+        records.push_back(HistoryRecord::from_json(recordJson));
     }
+
     return records;
 }
-

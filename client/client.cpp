@@ -6,8 +6,8 @@
 #include <stdexcept>
 #include <string>
 
-#include "/home/mau/Desktop/Cifrador-P3-D2/detec_errores/ErrorDetection.h"
-#include "/home/mau/Desktop/Cifrador-P3-D2/detec_errores/Security.h"
+#include "/home/amanda/CLionProjects/Cifrador-P3-D2/detec_errores/ErrorDetection.h"
+#include "/home/amanda/CLionProjects/Cifrador-P3-D2/detec_errores/Security.h"
 
 Client::Client(const char* serverIp, int port) : serverIp(serverIp), port(port) {
     // Crear socket

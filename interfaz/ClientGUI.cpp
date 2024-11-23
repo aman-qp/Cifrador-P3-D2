@@ -5,14 +5,15 @@
 #include <sstream>
 #include <vector>
 #include <memory>
+#include <nlohmann/json.hpp>
 #include "ErrorDetection.h"
 #include "Security.h"
 #include "Caesar.h"
 #include "Vigenere.h"
 #include "Sustitucion.h"
-#include "/home/mau/Desktop/Cifrador-P3-D2/alg_cifrado/Caesar.h"
-#include "/home/mau/Desktop/Cifrador-P3-D2/alg_cifrado/Vigenere.h"
-#include "/home/mau/Desktop/Cifrador-P3-D2/alg_cifrado/Sustitucion.h"
+#include "/home/amanda/CLionProjects/Cifrador-P3-D2/alg_cifrado/Caesar.h"
+#include "/home/amanda/CLionProjects/Cifrador-P3-D2/alg_cifrado/Vigenere.h"
+#include "/home/amanda/CLionProjects/Cifrador-P3-D2/alg_cifrado/Sustitucion.h"
 
 class ClientGUI
 {
@@ -73,10 +74,10 @@ private:
     struct TextInput {
         sf::RectangleShape background;
         sf::Text text;
-        sf::Text label;  // Añadido para mostrar etiquetas
+        sf::Text label;
         std::string content;
         bool isSelected;
-        bool isMultiline;  // Added to support multiline input
+        bool isMultiline;
         float maxWidth;
     };
 
@@ -87,7 +88,7 @@ private:
     Button historyButton;
     Button backButton;
     sf::Text serverResponse;
-    sf::Text titleText;  // Añadido para título
+    sf::Text titleText;
 
     TextInput decryptedOutput;
 
@@ -96,7 +97,7 @@ private:
 
     void initializeGUI() {
         // Cargar fondo
-        if (!backgroundTexture.loadFromFile("/home/mau/Desktop/Cifrador-P3-D2/recs/C.jpg")) {
+        if (!backgroundTexture.loadFromFile("/home/amanda/CLionProjects/Cifrador-P3-D2/recs/D.jpg")) {
             throw std::runtime_error("No se pudo cargar la imagen de fondo");
         }
         backgroundSprite.setTexture(backgroundTexture);
@@ -106,7 +107,7 @@ private:
         float scaleY = 600.0f / backgroundTexture.getSize().y;
         backgroundSprite.setScale(scaleX, scaleY);
 
-        if (!font.loadFromFile("/home/mau/Desktop/Cifrador-P3-D2/recs/Oxlaide.otf")) {
+        if (!font.loadFromFile("/home/amanda/CLionProjects/Cifrador-P3-D2/recs/Oxlaide.otf")) {
             throw std::runtime_error("No se pudo cargar la fuente");
         }
 
@@ -267,11 +268,23 @@ private:
             if (event.type == sf::Event::Closed) {
                 window.close();
             }
-            
+
+            // Manejar scroll con la rueda del mouse
+            if (event.type == sf::Event::MouseWheelScrolled) {
+                if (currentState == State::HISTORY) {
+                    scrollOffset += event.mouseWheelScroll.delta * SCROLL_SPEED;
+
+                    // Limitar el scroll
+                    if (scrollOffset > 0) scrollOffset = 0;
+                    if (scrollOffset < -maxScrollOffset) scrollOffset = -maxScrollOffset;
+                }
+            }
+
             handleMouseEvents(event);
             handleKeyboardEvents(event);
         }
     }
+
     void updateButtonStates() {
         for (size_t i = 0; i < algorithmButtons.size(); i++) {
             algorithmButtons[i].shape.setFillColor(
@@ -523,10 +536,26 @@ private:
                     size_t pos = response.find(": ");
                     if (pos != std::string::npos) {
                         std::string decryptedMsg = response.substr(pos + 2);
-                        decryptedOutput.content = decryptedMsg;
-                        decryptedOutput.text.setString(decryptedMsg);
-                        serverResponse.setString("Mensaje enviado y descifrado con éxito");
-                        serverResponse.setFillColor(sf::Color::Green);
+
+                        // Obtener el tipo de cifrado como string
+                        std::string cipherType =
+                            selectedAlgorithm == 1 ? std::string("CAESAR") :
+                            selectedAlgorithm == 2 ? std::string("VIGENERE") :
+                            std::string("SUSTITUCION");
+
+                        // Crear el mensaje formateado usando std::string
+                        std::string formattedMessage =
+                            std::string("Tipo de cifrado: ") + cipherType +
+                            std::string("\nMensaje cifrado: ") + encryptedMessage +
+                            std::string("\nMensaje descifrado: ") + decryptedMsg;
+
+                        // Actualizar el contenido y texto del campo de salida
+                        decryptedOutput.content = formattedMessage;
+                        decryptedOutput.text.setString(formattedMessage);
+
+                        // Actualizar el mensaje de estado
+                        serverResponse.setString("Mensaje procesado con exito");
+                        serverResponse.setFillColor(sf::Color::Red);
                     }
                 }
             } else {
@@ -541,12 +570,18 @@ private:
     }
 
     void loadHistory() {
-        // Aquí puedes implementar la carga del historial desde el archivo
         historyContent.clear();
-        std::ifstream file("cipher_history.txt");
-        std::string line;
-        while (std::getline(file, line)) {
-            historyContent.push_back(line);
+        std::ifstream file("cipher_history.json");
+        if (file.is_open()) {
+            try {
+                nlohmann::json data = nlohmann::json::parse(file);
+                for (const auto& record : data) {
+                    historyContent.push_back(record.dump());
+                }
+            } catch (const nlohmann::json::exception& e) {
+
+            }
+            file.close();
         }
     }
 
@@ -620,37 +655,91 @@ private:
         window.draw(serverResponse);
     }
 
+    float scrollOffset = 0.0f;
+    float maxScrollOffset = 0.0f;
+    const float SCROLL_SPEED = 20.0f;
+
     void renderHistory() {
-        window.draw(backgroundSprite);
+    window.draw(backgroundSprite);
 
-        // Título del historial
-        sf::Text historyTitle;
-        historyTitle.setFont(font);
-        historyTitle.setString("Historial de Mensajes");
-        historyTitle.setCharacterSize(24);
-        historyTitle.setFillColor(sf::Color::White);
-        historyTitle.setPosition(50.f, 20.f);
-        window.draw(historyTitle);
+    // Título del historial
+    sf::Text historyTitle;
+    historyTitle.setFont(font);
+    historyTitle.setString("Historial de Mensajes");
+    historyTitle.setCharacterSize(24);
+    historyTitle.setFillColor(sf::Color::White);
+    historyTitle.setPosition(50.f, 20.f);
+    window.draw(historyTitle);
 
-        // Renderizar el contenido del historial
-        float yPos = 70.f;
-        for (const auto& line : historyContent) {
-            sf::Text historyText;
-            historyText.setFont(font);
-            historyText.setString(line);
-            historyText.setCharacterSize(16);
-            historyText.setFillColor(sf::Color::White);
-            historyText.setPosition(50.f, yPos);
-            window.draw(historyText);
-            yPos += 25.f;
+    // Crear un área visible para el scroll
+    sf::RectangleShape scrollArea;
+    scrollArea.setPosition(50.f, 70.f);
+    scrollArea.setSize(sf::Vector2f(750.f, 430.f)); // Ajusta según necesites
+    scrollArea.setFillColor(sf::Color(0, 0, 0, 40));
+    window.draw(scrollArea);
+
+    // Crear una vista para el área de scroll
+    sf::View scrollView;
+    scrollView.reset(sf::FloatRect(0.f, 0.f, 750.f, 430.f));
+    scrollView.setViewport(sf::FloatRect(
+        scrollArea.getPosition().x / window.getSize().x,
+        scrollArea.getPosition().y / window.getSize().y,
+        scrollArea.getSize().x / window.getSize().x,
+        scrollArea.getSize().y / window.getSize().y
+    ));
+
+    // Guardar la vista actual
+    sf::View defaultView = window.getView();
+
+    // Configurar la vista de scroll
+    window.setView(scrollView);
+
+    // Renderizar el contenido del historial
+    float yPos = scrollOffset;
+    for (const auto& historyItem : historyContent) {
+        // Parsear el JSON para extraer los datos
+        try {
+            nlohmann::json record = nlohmann::json::parse(historyItem);
+
+            // Crear un contenedor visual para cada entrada
+            sf::RectangleShape entryBg;
+            entryBg.setPosition(10.f, yPos);
+            entryBg.setSize(sf::Vector2f(730.f, 140.f));
+            entryBg.setFillColor(sf::Color(255, 255, 255, 200));
+            window.draw(entryBg);
+
+            // Renderizar la información formateada
+            sf::Text entryText;
+            entryText.setFont(font);
+            entryText.setCharacterSize(16);
+            entryText.setFillColor(sf::Color::Black);
+
+            // Formatear el texto de manera más amigable
+            std::string formattedText =
+                "Fecha: " + record["timestamp"].get<std::string>() + "\n" +
+                "Tipo de cifrado: " + record["type"].get<std::string>() + "\n" +
+                "Mensaje cifrado: " + record["encrypted"].get<std::string>() + "\n" +
+                "Mensaje descifrado: " + record["decrypted"].get<std::string>();
+
+            entryText.setString(formattedText);
+            entryText.setPosition(20.f, yPos + 10.f);
+            window.draw(entryText);
+
+            yPos += 160.f; // Espacio entre entradas
+        } catch (const nlohmann::json::exception& e) {
+            continue;
         }
-
-        // Renderizar botón de volver
-        window.draw(backButton.shape);
-        window.draw(backButton.text);
     }
 
+    // Actualizar maxScrollOffset
+    maxScrollOffset = std::max(0.f, yPos - 430.f);
 
+    // Restaurar la vista original
+    window.setView(defaultView);
 
+    // Renderizar botón de volver
+    window.draw(backButton.shape);
+    window.draw(backButton.text);
+    }
 
 };

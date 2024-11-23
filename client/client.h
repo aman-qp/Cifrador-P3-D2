@@ -2,9 +2,9 @@
 #define CLIENT_H
 
 #include <netinet/in.h>
-#include "/home/mau/Desktop/Cifrador-P3-D2/alg_cifrado/Caesar.h"
-#include "/home/mau/Desktop/Cifrador-P3-D2/alg_cifrado/Vigenere.h"
-#include "/home/mau/Desktop/Cifrador-P3-D2/alg_cifrado/Sustitucion.h"
+#include "/home/amanda/CLionProjects/Cifrador-P3-D2/alg_cifrado/Caesar.h"
+#include "/home/amanda/CLionProjects/Cifrador-P3-D2/alg_cifrado/Vigenere.h"
+#include "/home/amanda/CLionProjects/Cifrador-P3-D2/alg_cifrado/Sustitucion.h"
 
 class Client {
 public:
@@ -34,7 +34,6 @@ private:
     Vigenere vigenere;
     Sustitucion sustitucion;
 
-    // Métodos privados
     void connect();
     void close() const;
 

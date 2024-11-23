@@ -4,51 +4,43 @@
 #include <set>
 
 std::string Sustitucion::encrypt(const std::string& message, const std::string& key) {
-    // Validamos la clave antes de proceder
     if (!validateKey(key)) return message;
-    
-    // Creamos el mapa de sustitución
+
     auto substitutionMap = createSubstitutionMap(key);
     std::string result = message;
-    
-    // Aplicamos la sustitución a cada carácter
+
     for (char& c : result) {
         if (isalpha(c)) {
-            // Preservamos mayúsculas/minúsculas
             bool isUpper = isupper(c);
             char baseChar = toupper(c);
 
-            // Buscamos la sustitución en el mapa
-            auto it = substitutionMap.find(baseChar);
-            if (it != substitutionMap.end()) {
-                c = isUpper ? it->second : tolower(it->second);
+            if (substitutionMap.find(baseChar) != substitutionMap.end()) {
+                char substituted = substitutionMap[baseChar];
+                c = isUpper ? substituted : tolower(substituted);
             }
         }
     }
-    
+
     return result;
 }
 
+
+// El metodo decrypt necesita usar el mapa inverso correctamente
 std::string Sustitucion::decrypt(const std::string& message, const std::string& key) {
-    // Validamos la clave antes de proceder
     if (!validateKey(key)) return message;
-    
-    // Creamos el mapa de sustitución y su inverso para descifrar
+
     auto substitutionMap = createSubstitutionMap(key);
     auto reverseMap = createReverseMap(substitutionMap);
     std::string result = message;
-    
-    // Aplicamos la sustitución inversa a cada carácter
+
     for (char& c : result) {
         if (isalpha(c)) {
-            // Preservamos mayúsculas/minúsculas
             bool isUpper = isupper(c);
             char baseChar = toupper(c);
-            
-            // Buscamos la sustitución inversa en el mapa
-            auto it = reverseMap.find(baseChar);
-            if (it != reverseMap.end()) {
-                c = isUpper ? it->second : tolower(it->second);
+
+            if (reverseMap.find(baseChar) != reverseMap.end()) {
+                char substituted = reverseMap[baseChar];
+                c = isUpper ? substituted : tolower(substituted);
             }
         }
     }
@@ -56,17 +48,53 @@ std::string Sustitucion::decrypt(const std::string& message, const std::string& 
     return result;
 }
 
-bool Sustitucion::validateKey(const std::string& key) {
-    return isValidSubstitutionKey(key);
+std::string Sustitucion::generateFullKey(const std::string& key) {
+    std::string fullKey;
+    std::set<char> usedChars;
+
+    // Primero añadimos los caracteres de la clave
+    for (char c : key) {
+        char upperC = toupper(c);
+        if (isalpha(upperC) && !usedChars.contains(upperC)) {
+            fullKey += upperC;
+            usedChars.insert(upperC);
+        }
+    }
+
+    // Luego añadimos el resto del alfabeto que no está en la clave
+    for (char c = 'A'; c <= 'Z'; c++) {
+        if (!usedChars.contains(c)) {
+            fullKey += c;
+        }
+    }
+
+    return fullKey;
 }
+
+bool Sustitucion::validateKey(const std::string& key) {
+    if (key.empty()) return false;
+
+    // Verificar que la clave contenga al menos una letra
+    bool hasLetter = false;
+    for (char c : key) {
+        if (isalpha(c)) {
+            hasLetter = true;
+            break;
+        }
+    }
+
+    return hasLetter;
+}
+
 
 std::map<char, char> Sustitucion::createSubstitutionMap(const std::string& key) {
     std::map<char, char> substitutionMap;
-    std::string normalAlphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    
-    // Creamos el mapeo entre el alfabeto normal y la clave
-    for (size_t i = 0; i < normalAlphabet.length(); ++i) {
-        substitutionMap[normalAlphabet[i]] = toupper(key[i]);
+    std::string fullKey = generateFullKey(key);
+
+    // Crear el mapeo usando el alfabeto generado
+    for (int i = 0; i < 26; i++) {
+        char originalChar = 'A' + i;
+        substitutionMap[originalChar] = fullKey[i];
     }
     
     return substitutionMap;
@@ -81,25 +109,4 @@ std::map<char, char> Sustitucion::createReverseMap(const std::map<char, char>& s
     }
     
     return reverseMap;
-}
-
-bool Sustitucion::isValidSubstitutionKey(const std::string& key) {
-    // La clave debe tener exactamente 26 caracteres (uno para cada letra del alfabeto)
-    if (key.length() != 26) return false;
-    
-    std::set<char> uniqueChars;
-    
-    // Verificamos que cada carácter sea una letra y que no haya duplicados
-    for (char c : key) {
-        if (!isalpha(c)) return false;
-        
-        // Convertimos a mayúscula para la comparación
-        char upperC = toupper(c);
-        if (uniqueChars.contains(upperC)) {
-            return false;  // Carácter duplicado
-        }
-        uniqueChars.insert(upperC);
-    }
-    
-    return uniqueChars.size() == 26;  // Debe haber 26 caracteres únicos
 }

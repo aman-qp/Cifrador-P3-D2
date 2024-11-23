@@ -19,8 +19,8 @@ private:
     static std::map<char, char> createSubstitutionMap(const std::string& key);
     static std::map<char, char> createReverseMap(const std::map<char, char>& substitutionMap);
 
-    // Metodo para verificar si una clave es válida
-    static bool isValidSubstitutionKey(const std::string& key);
+    //Agrega lo restante del abecedario
+    static std::string generateFullKey(const std::string& key);
 };
 
 #endif
